@@ -1,0 +1,66 @@
+name: Run DataFlow CI
+
+on:
+  push:
+    branches:
+      - df-1.0
+    paths:
+      - 'Dataflow/**'
+
+jobs:
+  run-dataflow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Generate Access Token
+        shell: bash
+        run: |
+
+          BASIC_AUTH=$(echo -n "${{ secrets.DATAOPS_CLIENT_ID }}:${{ secrets.DATAOPS_CLIENT_SECRET }}" | base64)
+
+          TOKEN_RESPONSE=$(curl -s -X POST \
+          "https://dgvm6205.datagapsinc.in/dataopssecurity/oauth2/token" \
+          -H "Accept: application/json" \
+          -H "Authorization: Basic $BASIC_AUTH" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "grant_type=password&username=${{ secrets.DATAOPS_USERNAME }}&password=${{ secrets.DATAOPS_PASSWORD }}")
+
+          echo "Token Response:"
+          echo "$TOKEN_RESPONSE"
+
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "Failed to obtain access token"
+            exit 1
+          fi
+
+          echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+
+      - name: Trigger DataFlow
+        shell: bash
+        run: |
+
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+          -X POST \
+          "https://dgvm6205.datagapsinc.in/DataFlowService/api/v2/dataflow/74ff1705-227a-4678-9743-a10725855969/run" \
+          -H "Accept: */*, application/json" \
+          -H "Authorization: Bearer $ACCESS_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+                "parameters":"{\"limit_rows\":\"limit 1000\",\"userid\":\"user_id>100\"}"
+              }')
+
+          echo "$RESPONSE"
+
+          STATUS=$(echo "$RESPONSE" | grep HTTP_STATUS | cut -d':' -f2)
+
+          if [ "$STATUS" -ne 200 ] && [ "$STATUS" -ne 201 ] && [ "$STATUS" -ne 202 ]; then
+            echo "DataFlow execution failed"
+            exit 1
+          fi
+
+          echo "DataFlow triggered successfully"
