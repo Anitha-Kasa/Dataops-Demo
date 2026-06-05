@@ -12,8 +12,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Verify Secrets
+        run: |
+          echo "Checking secrets..."
+
+          if [ -z "${{ secrets.DATAOPS_USERNAME }}" ]; then
+            echo "DATAOPS_USERNAME missing"
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.DATAOPS_PASSWORD }}" ]; then
+            echo "DATAOPS_PASSWORD missing"
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.DATAOPS_CLIENT_ID }}" ]; then
+            echo "DATAOPS_CLIENT_ID missing"
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.DATAOPS_CLIENT_SECRET }}" ]; then
+            echo "DATAOPS_CLIENT_SECRET missing"
+            exit 1
+          fi
+
+          echo "All required secrets exist"
+
+      - name: Test Connectivity
+        run: |
+          curl -I https://dgvm6205.datagapsinc.in
 
       - name: Generate Access Token
         shell: bash
@@ -21,7 +52,9 @@ jobs:
 
           BASIC_AUTH=$(echo -n "${{ secrets.DATAOPS_CLIENT_ID }}:${{ secrets.DATAOPS_CLIENT_SECRET }}" | base64)
 
-          TOKEN_RESPONSE=$(curl -s -X POST \
+          echo "Calling OAuth endpoint..."
+
+          TOKEN_RESPONSE=$(curl -v -X POST \
           "https://dgvm6205.datagapsinc.in/dataopssecurity/oauth2/token" \
           -H "Accept: application/json" \
           -H "Authorization: Basic $BASIC_AUTH" \
