@@ -3,7 +3,7 @@ name: Run Python Script
 on: 
   push:
     paths:
-      - 'Dataflow/Anitha/*'
+      - 'Dataflow/Anitha/Daktronics etl usecases/target tables.json'
 
 jobs:
   run-python:
