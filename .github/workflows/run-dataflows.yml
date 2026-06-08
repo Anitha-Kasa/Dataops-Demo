@@ -1,33 +1,43 @@
-name: Run DataFlow
+name: Run DataFlow CI
 
 on:
   push:
     branches:
-      - main
+      - df-1.0
     paths:
       - 'Dataflow/**'
 
+  workflow_dispatch:
+
 jobs:
   run-dataflow:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Generate OAuth Token
+      - name: Verify Connectivity
+        shell: bash
         run: |
+          echo "Testing connectivity..."
+          nslookup dgvm6205.datagapsinc.in || true
+
+          curl -k -I \
+          https://dgvm6205.datagapsinc.in
+
+      - name: Generate Access Token
+        shell: bash
+        run: |
+
           BASIC_AUTH=$(echo -n "${{ secrets.DATAOPS_CLIENT_ID }}:${{ secrets.DATAOPS_CLIENT_SECRET }}" | base64)
 
           TOKEN_RESPONSE=$(curl -s -X POST \
-            "${{ secrets.DATAOPS_BASEURL }}/dataopssecurity/oauth2/token" \
-            -H "Accept: application/json" \
-            -H "Authorization: Basic $BASIC_AUTH" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=password&username=${{ secrets.DATAOPS_USERNAME }}&password=${{ secrets.DATAOPS_PASSWORD }}")
+          "https://dgvm6205.datagapsinc.in/dataopssecurity/oauth2/token" \
+          -H "Accept: application/json" \
+          -H "Authorization: Basic $BASIC_AUTH" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "grant_type=password&username=${{ secrets.DATAOPS_USERNAME }}&password=${{ secrets.DATAOPS_PASSWORD }}")
 
           echo "Token Response:"
           echo "$TOKEN_RESPONSE"
@@ -35,26 +45,39 @@ jobs:
           ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
 
           if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            echo "Failed to generate access token"
+            echo "Failed to obtain access token"
             exit 1
           fi
 
           echo "ACCESS_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
 
       - name: Trigger DataFlow
+        shell: bash
         run: |
+
           DATAFLOW_ID="58be363b-9450-4769-aabe-eff7cb13a991"
 
-          echo "Triggering DataFlow: $DATAFLOW_ID"
+          echo "Executing DataFlow: $DATAFLOW_ID"
 
-          RESPONSE=$(curl -s -X POST \
-            "${{ secrets.DATAOPS_BASEURL }}/DataFlowService/api/v2/dataflow/${DATAFLOW_ID}/run" \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
-            -d '{
-                  "parameters":"{\"limit_rows\":\"limit 1000\",\"userid\":\"user_id>100\"}"
-                }')
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+          -X POST \
+          "https://dgvm6205.datagapsinc.in/DataFlowService/api/v2/dataflow/${DATAFLOW_ID}/run" \
+          -H "Accept: application/json" \
+          -H "Authorization: Bearer $ACCESS_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+                "parameters":"{\"limit_rows\":\"limit 1000\",\"userid\":\"user_id>100\"}"
+              }')
 
-          echo "API Response:"
           echo "$RESPONSE"
+
+          STATUS=$(echo "$RESPONSE" | grep HTTP_STATUS | cut -d':' -f2)
+
+          if [ "$STATUS" -ne 200 ] && \
+             [ "$STATUS" -ne 201 ] && \
+             [ "$STATUS" -ne 202 ]; then
+            echo "DataFlow execution failed"
+            exit 1
+          fi
+
+          echo "DataFlow triggered successfully"
