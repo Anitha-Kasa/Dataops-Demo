@@ -14,7 +14,7 @@ def trigger_pipeline():
     password = "U2FsdGVkX19boJtjLVCVq6OIe85wofMZZy6poJ8KvzI0gwlA6YqjU9Dm235ELVOY"
     pipeline_id = "6fab0a0e-f2f3-4ea8-b194-0b67ec08bc83"
 
-    auth_url = "http://192.168.6.205:6055/dataopssecurity/oauth2/token"
+    auth_url = "https://dgvm6205.datagapsinc.in/dataopssecurity/oauth2/token"
     basic_auth_str = f"{client_id}:{client_secret}"
     base64_auth_str = base64.b64encode(basic_auth_str.encode()).decode()
 
@@ -37,7 +37,7 @@ def trigger_pipeline():
     access_token = response.json().get("access_token")
     print(" Authentication successful")
 
-    pipeline_url = "http://192.168.6.205:6055/piper/jobs"
+    pipeline_url = "https://dgvm6205.datagapsinc.in/piper/jobs"
     pipe_headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -62,7 +62,7 @@ def trigger_pipeline():
 
 
 def pipeline_status(bearer_token, pipeline_run_id):
-    status_url = f"http://192.168.6.205:6055/piper/jobs/{pipeline_run_id}/status"
+    status_url = f"https://dgvm6205.datagapsinc.in/piper/jobs/{pipeline_run_id}/status"
     headers = {
         "Authorization": f"Bearer {bearer_token}",
         "Content-Type": "application/json",
