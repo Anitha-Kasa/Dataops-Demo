@@ -35,9 +35,10 @@ def trigger_pipeline():
         sys.exit(1)
 
     access_token = response.json().get("access_token")
+    print(access_token)
     print(" Authentication successful")
 
-    pipeline_url = "http://192.168.6.205:6055/piper/jobs"
+    """pipeline_url = "http://192.168.6.205:6055/piper/jobs"
     pipe_headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -89,16 +90,19 @@ def pipeline_status(bearer_token, pipeline_run_id):
             print(f" Pipeline finished with status: {status}")
             return status
 
-        time.sleep(60)  
+        time.sleep(60)  """
 
 
-token, run_id = trigger_pipeline()
+"""token, run_id = trigger_pipeline()
 final_status = pipeline_status(token, run_id)
 
 if final_status == "COMPLETED":
     sys.exit(0)
 else:
-    sys.exit(1)
+    sys.exit(1)"""
+trigger_pipeline()
+
+
 
 
 
