@@ -11,7 +11,7 @@ on:
 
 jobs:
   run-dataflow:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
@@ -21,10 +21,10 @@ jobs:
         shell: bash
         run: |
           echo "Testing connectivity..."
-          nslookup dgvm6205.datagapsinc.in || true
+          nslookup 192.168.6.205:6055 || true
 
           curl -k -I \
-          https://dgvm6205.datagapsinc.in
+          http://192.168.6.205:6055
 
       - name: Generate Access Token
         shell: bash
@@ -33,7 +33,7 @@ jobs:
           BASIC_AUTH=$(echo -n "${{ secrets.DATAOPS_CLIENT_ID }}:${{ secrets.DATAOPS_CLIENT_SECRET }}" | base64)
 
           TOKEN_RESPONSE=$(curl -s -X POST \
-          "https://dgvm6205.datagapsinc.in/dataopssecurity/oauth2/token" \
+          "http://192.168.6.205:6055/dataopssecurity/oauth2/token" 
           -H "Accept: application/json" \
           -H "Authorization: Basic $BASIC_AUTH" \
           -H "Content-Type: application/x-www-form-urlencoded" \
@@ -61,7 +61,7 @@ jobs:
 
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
           -X POST \
-          "https://dgvm6205.datagapsinc.in/DataFlowService/api/v2/dataflow/${DATAFLOW_ID}/run" \
+          "http://192.168.6.205:6055/DataFlowService/api/v2/dataflow/${DATAFLOW_ID}/run" \
           -H "Accept: application/json" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
