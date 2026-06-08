@@ -3,7 +3,6 @@ import base64
 import time
 import json
 import sys
-import configs
 
 
 
