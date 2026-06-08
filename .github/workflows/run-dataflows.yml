@@ -7,13 +7,24 @@ on:
     paths:
       - 'Dataflow/**'
 
+  workflow_dispatch:
+
 jobs:
   run-dataflow:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Verify Connectivity
+        shell: bash
+        run: |
+          echo "Testing connectivity..."
+          nslookup dgvm6205.datagapsinc.in || true
+
+          curl -k -I \
+          https://dgvm6205.datagapsinc.in
 
       - name: Generate Access Token
         shell: bash
@@ -44,10 +55,14 @@ jobs:
         shell: bash
         run: |
 
+          DATAFLOW_ID="58be363b-9450-4769-aabe-eff7cb13a991"
+
+          echo "Executing DataFlow: $DATAFLOW_ID"
+
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
           -X POST \
-          "https://dgvm6205.datagapsinc.in/DataFlowService/api/v2/dataflow/74ff1705-227a-4678-9743-a10725855969/run" \
-          -H "Accept: */*, application/json" \
+          "https://dgvm6205.datagapsinc.in/DataFlowService/api/v2/dataflow/${DATAFLOW_ID}/run" \
+          -H "Accept: application/json" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d '{
@@ -58,7 +73,9 @@ jobs:
 
           STATUS=$(echo "$RESPONSE" | grep HTTP_STATUS | cut -d':' -f2)
 
-          if [ "$STATUS" -ne 200 ] && [ "$STATUS" -ne 201 ] && [ "$STATUS" -ne 202 ]; then
+          if [ "$STATUS" -ne 200 ] && \
+             [ "$STATUS" -ne 201 ] && \
+             [ "$STATUS" -ne 202 ]; then
             echo "DataFlow execution failed"
             exit 1
           fi
